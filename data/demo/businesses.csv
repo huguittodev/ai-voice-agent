@@ -1,0 +1,4 @@
+name,business_type,city,website_url,phone,source,status
+Demo Restaurante,Restaurante,Madrid,,,"synthetic",new
+Demo Clínica,Clínica,Madrid,,,"synthetic",new
+Demo Taller,Taller mecánico,Madrid,,,"synthetic",new

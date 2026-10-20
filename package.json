@@ -1,0 +1,13 @@
+{
+  "name": "local-voice-agent",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "pnpm --filter @local-voice-agent/web dev",
+    "build": "pnpm --filter @local-voice-agent/web build",
+    "lint": "pnpm --filter @local-voice-agent/web lint",
+    "typecheck": "pnpm --filter @local-voice-agent/web typecheck",
+    "test": "pnpm --filter @local-voice-agent/web test"
+  }
+}
