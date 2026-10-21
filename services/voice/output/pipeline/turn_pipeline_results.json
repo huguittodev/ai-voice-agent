@@ -1,0 +1,115 @@
+{
+  "cold_load": {
+    "stt_cold_load_ms": 1723.16,
+    "tts_cold_load_ms": 796.82,
+    "total_cold_load_ms": 2519.98
+  },
+  "averages_turnaround": {
+    "avg_stt_ms": 1038.79,
+    "avg_tts_ms": 176.1,
+    "avg_decision_ms": 0.2241,
+    "avg_total_turnaround_ms": 1215.12
+  },
+  "scenarios": [
+    {
+      "scenario_id": "scenario_1_service_info",
+      "description": "Usuario solicita información sobre servicios",
+      "telemetry": {
+        "input_wav_path": "output/demo_inputs/scenario_1_service_info_input.wav",
+        "output_wav_path": "output/pipeline/scenario_1_service_info_reply.wav",
+        "input_audio_duration_s": 3.32,
+        "output_audio_duration_s": 11.877,
+        "stt_inference_ms": 1051.1,
+        "decision_ms": 0.8045,
+        "tts_synthesis_ms": 220.07,
+        "total_turnaround_ms": 1271.98,
+        "turnaround_rtf": 0.3831,
+        "transcribed_text": "Hola, buenos días. ¿Qué servicios ofrecéis en vuestra empresa?",
+        "response_text": "Hola, soy el asistente virtual de la empresa. Desarrollamos soluciones de software para automatizar procesos comerciales y de atención al cliente. Para orientarle mejor, ¿qué tipo de proceso le gustaría optimizar en su negocio?",
+        "intent_detected": "service_info",
+        "confidence": 0.9,
+        "ram_process_mb": 941.29,
+        "vram_mb": 1872.0,
+        "stt_model": "small",
+        "stt_device": "cpu",
+        "stt_compute_type": "int8",
+        "tts_model_path": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx"
+      }
+    },
+    {
+      "scenario_id": "scenario_2_interest",
+      "description": "Usuario muestra interés en recibir más información",
+      "telemetry": {
+        "input_wav_path": "output/demo_inputs/scenario_2_interest_input.wav",
+        "output_wav_path": "output/pipeline/scenario_2_interest_reply.wav",
+        "input_audio_duration_s": 4.203,
+        "output_audio_duration_s": 9.16,
+        "stt_inference_ms": 1085.33,
+        "decision_ms": 0.0426,
+        "tts_synthesis_ms": 182.58,
+        "total_turnaround_ms": 1267.96,
+        "turnaround_rtf": 0.3017,
+        "transcribed_text": "Me interesa bastante la propuesta, ¿podríais enviarme más información al respecto?",
+        "response_text": "Estupendo. Podemos prepararle un resumen con la información técnica y casos de uso. ¿Podría facilitarme su dirección de correo electrónico para que el equipo comercial se lo envíe?",
+        "intent_detected": "express_interest",
+        "confidence": 0.9,
+        "ram_process_mb": 941.49,
+        "vram_mb": 1858.0,
+        "stt_model": "small",
+        "stt_device": "cpu",
+        "stt_compute_type": "int8",
+        "tts_model_path": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx"
+      }
+    },
+    {
+      "scenario_id": "scenario_3_meeting",
+      "description": "Usuario propone concertar una reunión",
+      "telemetry": {
+        "input_wav_path": "output/demo_inputs/scenario_3_meeting_input.wav",
+        "output_wav_path": "output/pipeline/scenario_3_meeting_reply.wav",
+        "input_audio_duration_s": 4.946,
+        "output_audio_duration_s": 10.588,
+        "stt_inference_ms": 1137.8,
+        "decision_ms": 0.0357,
+        "tts_synthesis_ms": 210.49,
+        "total_turnaround_ms": 1348.32,
+        "turnaround_rtf": 0.2726,
+        "transcribed_text": "Hola, me gustaría agendar una reunión llamada con vosotros para el próximo jueves.",
+        "response_text": "Con mucho gusto. Tomo nota de su solicitud de reunión. ¿Qué día y franja horaria le vendría mejor, por la mañana o por la tarde? Nuestro equipo revisará la agenda y le confirmará la cita por correo.",
+        "intent_detected": "meeting_request",
+        "confidence": 0.95,
+        "ram_process_mb": 941.64,
+        "vram_mb": 1849.0,
+        "stt_model": "small",
+        "stt_device": "cpu",
+        "stt_compute_type": "int8",
+        "tts_model_path": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx"
+      }
+    },
+    {
+      "scenario_id": "scenario_4_unintelligible",
+      "description": "Entrada ininteligible (silencio o ruido de baja amplitud)",
+      "telemetry": {
+        "input_wav_path": "output/demo_inputs/scenario_4_unintelligible_input.wav",
+        "output_wav_path": "output/pipeline/scenario_4_unintelligible_reply.wav",
+        "input_audio_duration_s": 1.5,
+        "output_audio_duration_s": 4.795,
+        "stt_inference_ms": 880.93,
+        "decision_ms": 0.0136,
+        "tts_synthesis_ms": 91.25,
+        "total_turnaround_ms": 972.2,
+        "turnaround_rtf": 0.6481,
+        "transcribed_text": "",
+        "response_text": "Disculpe, no he podido escucharle con claridad. ¿Podría repetir lo que me decía, por favor?",
+        "intent_detected": "unintelligible",
+        "confidence": 1.0,
+        "ram_process_mb": 943.35,
+        "vram_mb": 1845.0,
+        "stt_model": "small",
+        "stt_device": "cpu",
+        "stt_compute_type": "int8",
+        "tts_model_path": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx"
+      }
+    }
+  ]
+}

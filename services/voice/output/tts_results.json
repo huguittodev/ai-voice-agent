@@ -1,0 +1,81 @@
+{
+  "model_path": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx",
+  "config_path": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx.json",
+  "voice_name": "es_ES-davefx-medium",
+  "license": "CC0 1.0 Universal (Public Domain)",
+  "sample_rate_hz": 22050,
+  "cold_load_time_ms": 919.55,
+  "ram_initial_mb": 51.91,
+  "ram_after_load_mb": 141.36,
+  "phrases": [
+    {
+      "id": "frase_1",
+      "category": "Saludo y propuesta comercial",
+      "text": "Buenos días, le llamo de Soluciones Cloud para presentarle nuestra herramienta de automatización para equipos comerciales.",
+      "output_file": "output/audio/frase_1.wav",
+      "file_bytes": 276524,
+      "duration_seconds": 6.269,
+      "synthesis_time_ms": 205.76,
+      "rtf": 0.0328,
+      "sample_rate": 22050,
+      "channels": 1,
+      "sample_width_bytes": 2
+    },
+    {
+      "id": "frase_2",
+      "category": "Cifras, porcentajes y fechas",
+      "text": "Hemos ayudado a más de 150 empresas del sector a reducir un 35% sus costes operativos durante el primer trimestre de 2026.",
+      "output_file": "output/audio/frase_2.wav",
+      "file_bytes": 391212,
+      "duration_seconds": 8.87,
+      "synthesis_time_ms": 165.61,
+      "rtf": 0.0187,
+      "sample_rate": 22050,
+      "channels": 1,
+      "sample_width_bytes": 2
+    },
+    {
+      "id": "frase_3",
+      "category": "Marcas y anglicismos tecnológicos",
+      "text": "Nuestra solución se integra de forma nativa con Salesforce, HubSpot y Microsoft Dynamics mediante APIs seguras.",
+      "output_file": "output/audio/frase_3.wav",
+      "file_bytes": 279596,
+      "duration_seconds": 6.339,
+      "synthesis_time_ms": 119.42,
+      "rtf": 0.0188,
+      "sample_rate": 22050,
+      "channels": 1,
+      "sample_width_bytes": 2
+    },
+    {
+      "id": "frase_4",
+      "category": "Objeción y agendamiento de reunión",
+      "text": "Entiendo perfectamente que ahora mismo no tengan presupuesto; ¿le parece si lo comentamos brevemente el próximo jueves a las 11:30?",
+      "output_file": "output/audio/frase_4.wav",
+      "file_bytes": 325676,
+      "duration_seconds": 7.384,
+      "synthesis_time_ms": 134.31,
+      "rtf": 0.0182,
+      "sample_rate": 22050,
+      "channels": 1,
+      "sample_width_bytes": 2
+    },
+    {
+      "id": "frase_5",
+      "category": "Complejidad técnica y fonética",
+      "text": "Implementamos arquitecturas híbridas optimizadas sobre microservicios con cifrado de extremo a extremo sin interrumpir su operativa.",
+      "output_file": "output/audio/frase_5.wav",
+      "file_bytes": 310316,
+      "duration_seconds": 7.036,
+      "synthesis_time_ms": 125.25,
+      "rtf": 0.0178,
+      "sample_rate": 22050,
+      "channels": 1,
+      "sample_width_bytes": 2
+    }
+  ],
+  "ram_final_mb": 338.72,
+  "total_audio_duration_seconds": 35.898,
+  "total_synthesis_time_seconds": 0.75,
+  "overall_rtf": 0.0209
+}
