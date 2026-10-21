@@ -24,3 +24,13 @@
 - Decision: implement commercial conversational responses via deterministic rules and templates without an LLM for Phase 1.3.
 - Status: Phase 1.3 execution approved; single-turn turnaround pipeline implementation underway.
 
+## 2026-10-21 — Microphone Capture and Local Dialogue (Phase 1.4)
+
+- Decision: add `sounddevice` as minimal dependency for audio input/output handling.
+- Decision: manage WSL2 hardware isolation gracefully; when `libportaudio2` is absent in Linux userland, report the exact missing system dependency and provide a fallback mode with audio interventions and a reproducible local setup guide.
+- Decision: retain faster-whisper `small` on CPU (`int8`) and Piper `es_ES-davefx-medium` on CPU as verified in Phase 1.3.
+- Decision: eliminate unbounded `sd.wait()` calls by isolating microphone capture and audio playback inside dedicated child processes supervised by explicit timeouts. If native PortAudio/WSLg stalls on buffer starvation, the child process is terminated and `MicrophoneNotAvailableError` is raised, preventing process freeze.
+- Decision: add explicit `--device` selection in `demo_mic.py` and categorize capture telemetry univoquely as `physical_capture`, `wav_input`, or `fallback`.
+- Status: Phase 1.4 robustness hardening implemented; hardware validation with live microphone pending in host environment.
+
+

@@ -1,0 +1,94 @@
+{
+  "platform": "linux",
+  "is_wsl": true,
+  "env_vars": {
+    "PULSE_SERVER": "unix:/mnt/wslg/PulseServer",
+    "WAYLAND_DISPLAY": "wayland-0",
+    "DISPLAY": ":0",
+    "WSL_DISTRO_NAME": "Ubuntu"
+  },
+  "dev_snd_exists": true,
+  "dev_snd_nodes": [
+    "timer"
+  ],
+  "cli_tools": {
+    "arecord": "/usr/bin/arecord",
+    "aplay": "/usr/bin/aplay",
+    "pactl": "/usr/bin/pactl",
+    "pw-record": null,
+    "ffmpeg": null
+  },
+  "alsa_devices": {
+    "playback": [
+      "aplay: device_list:279: no soundcards found..."
+    ],
+    "capture": [
+      "arecord: device_list:279: no soundcards found..."
+    ]
+  },
+  "portaudio_available": true,
+  "sounddevice_devices": [
+    {
+      "name": "Default Sink",
+      "index": 0,
+      "hostapi": 2,
+      "max_input_channels": 0,
+      "max_output_channels": 32,
+      "default_low_input_latency": 0.0,
+      "default_low_output_latency": 0.01,
+      "default_high_input_latency": 0.0,
+      "default_high_output_latency": 0.08,
+      "default_samplerate": 44100.0
+    },
+    {
+      "name": "Default Source",
+      "index": 1,
+      "hostapi": 2,
+      "max_input_channels": 32,
+      "max_output_channels": 0,
+      "default_low_input_latency": 0.01,
+      "default_low_output_latency": 0.0,
+      "default_high_input_latency": 0.08,
+      "default_high_output_latency": 0.0,
+      "default_samplerate": 44100.0
+    },
+    {
+      "name": "RDPSink",
+      "index": 2,
+      "hostapi": 2,
+      "max_input_channels": 0,
+      "max_output_channels": 2,
+      "default_low_input_latency": 0.0,
+      "default_low_output_latency": 0.01,
+      "default_high_input_latency": 0.0,
+      "default_high_output_latency": 0.08,
+      "default_samplerate": 44100.0
+    },
+    {
+      "name": "RDPSink.monitor",
+      "index": 3,
+      "hostapi": 2,
+      "max_input_channels": 2,
+      "max_output_channels": 0,
+      "default_low_input_latency": 0.01,
+      "default_low_output_latency": 0.0,
+      "default_high_input_latency": 0.08,
+      "default_high_output_latency": 0.0,
+      "default_samplerate": 44100.0
+    },
+    {
+      "name": "RDPSource",
+      "index": 4,
+      "hostapi": 2,
+      "max_input_channels": 1,
+      "max_output_channels": 0,
+      "default_low_input_latency": 0.01,
+      "default_low_output_latency": 0.0,
+      "default_high_input_latency": 0.08,
+      "default_high_output_latency": 0.0,
+      "default_samplerate": 44100.0
+    }
+  ],
+  "default_input_device": 1,
+  "default_output_device": 0
+}

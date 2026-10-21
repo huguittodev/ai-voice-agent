@@ -1,0 +1,101 @@
+{
+  "timestamp": "2026-10-21 18:10:49",
+  "hardware_status": {
+    "has_input_device": true,
+    "has_output_device": true,
+    "backend_name": "sounddevice (PortAudio)",
+    "input_device_name": "Default Source",
+    "output_device_name": "Default Sink",
+    "error_detail": null,
+    "default_input_index": 1,
+    "default_output_index": 0,
+    "available_devices": [
+      {
+        "name": "Default Sink",
+        "index": 0,
+        "hostapi": 2,
+        "max_input_channels": 0,
+        "max_output_channels": 32,
+        "default_low_input_latency": 0.0,
+        "default_low_output_latency": 0.01,
+        "default_high_input_latency": 0.0,
+        "default_high_output_latency": 0.08,
+        "default_samplerate": 44100.0
+      },
+      {
+        "name": "Default Source",
+        "index": 1,
+        "hostapi": 2,
+        "max_input_channels": 32,
+        "max_output_channels": 0,
+        "default_low_input_latency": 0.01,
+        "default_low_output_latency": 0.0,
+        "default_high_input_latency": 0.08,
+        "default_high_output_latency": 0.0,
+        "default_samplerate": 44100.0
+      },
+      {
+        "name": "RDPSink",
+        "index": 2,
+        "hostapi": 2,
+        "max_input_channels": 0,
+        "max_output_channels": 2,
+        "default_low_input_latency": 0.0,
+        "default_low_output_latency": 0.01,
+        "default_high_input_latency": 0.0,
+        "default_high_output_latency": 0.08,
+        "default_samplerate": 44100.0
+      },
+      {
+        "name": "RDPSink.monitor",
+        "index": 3,
+        "hostapi": 2,
+        "max_input_channels": 2,
+        "max_output_channels": 0,
+        "default_low_input_latency": 0.01,
+        "default_low_output_latency": 0.0,
+        "default_high_input_latency": 0.08,
+        "default_high_output_latency": 0.0,
+        "default_samplerate": 44100.0
+      },
+      {
+        "name": "RDPSource",
+        "index": 4,
+        "hostapi": 2,
+        "max_input_channels": 1,
+        "max_output_channels": 0,
+        "default_low_input_latency": 0.01,
+        "default_low_output_latency": 0.0,
+        "default_high_input_latency": 0.08,
+        "default_high_output_latency": 0.0,
+        "default_samplerate": 44100.0
+      }
+    ]
+  },
+  "capture_mode": "physical_capture",
+  "capture_error": null,
+  "input_audio_path": "output/mic_demo/captured_speech.wav",
+  "output_audio_path": "output/mic_demo/response_speech.wav",
+  "metrics": {
+    "capture_duration_seconds": 2.1,
+    "stt_inference_ms": 974.78,
+    "decision_ms": 0.8477,
+    "tts_synthesis_ms": 239.27,
+    "total_turnaround_ms": 1214.91,
+    "time_to_audio_available_ms": 1279.63,
+    "playback_attempted": true,
+    "playback_successful": false,
+    "playback_trigger_latency_ms": 10654.66,
+    "turnaround_rtf": 0.6075
+  },
+  "dialogue": {
+    "transcribed_text": "Hola, buenas, ¿quienes?",
+    "response_text": "Gracias por su mensaje. Para poder orientarle adecuadamente, ¿le gustaría conocer nuestros servicios, recibir documentación o coordinar una llamada con nuestro equipo?",
+    "intent_detected": "fallback_clarification",
+    "confidence": 0.5
+  },
+  "models": {
+    "stt": "small (cpu int8)",
+    "tts": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx"
+  }
+}
