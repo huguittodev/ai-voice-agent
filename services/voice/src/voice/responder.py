@@ -99,28 +99,36 @@ class CommercialResponse:
 # --- CATÁLOGO DE PATRONES DETERMINISTAS ---
 
 _PATTERNS_DO_NOT_CONTACT: list[str] = [
-    r"\bno\s+(me\s+|nos\s+)?(volv\w*\s+a\s+llamar|llam\w*\s+m[aá]s|contact\w*\s+m[aá]s|molest\w*)\b",
-    r"\bno\s+(me\s+|nos\s+)?(llames|llame|llam[eé]is|llamen|contactes|contacte)\b",
-    r"\bborr\w*\s+(mi\s+|nuestro\s+)?(n[uú]mero|contacto|datos|tel[eé]fono)\b",
+    # No volver a llamar / no llamar más / no contactar más / no volver a molestar
+    r"\bno\s+(me\s+|nos\s+)?(volv\w*\s+a\s+(llamar|contact\w*|molest\w*)|llam\w*\s+m[aá]s|contact\w*\s+m[aá]s|molest\w*)\b",
+    # No me llaméis / no me llames / no contactes
+    r"\bno\s+(me\s+|nos\s+)?(llames|llame|llam[eé]is|llamen|contactes|contacte|contacten)\b",
+    # Borrad mi/mis/nuestro/nuestros número/contacto/datos/teléfono
+    r"\bborr\w*\s+(mi\s+|mis\s+|nuestro\s+|nuestros\s+)?(n[uú]mero|contacto|datos|tel[eé]fono)\b",
+    # Dadme / darnos de baja
     r"\b(da[rd]\w*|dar)\s+de\s+baja\b",
-    r"\bno\s+quiero\s+(m[aá]s\s+)?(llamadas|contacto|mensajes)\b",
-    r"\belimin\w*\s+(mi\s+n[uú]mero\s+)?de\s+(la|vuestra)\s+lista\b",
+    # No quiero que me llaméis / no quiero recibir más llamadas comerciales / no quiero más contacto
+    r"\bno\s+quiero\s+(que\s+(me\s+|nos\s+)?llam\w*|recib\w*\s+(m[aá]s\s+)?(llamadas|mensajes|comunicaciones)|m[aá]s\s+(llamadas|contacto|mensajes))\b",
+    # Eliminad mi contacto / número / datos de la lista
+    r"\belimin\w*\s+((mi\s+|mis\s+|nuestro\s+|nuestros\s+)?(n[uú]mero|contacto|datos|tel[eé]fono)\s+)?de\s+(la|vuestra)\s+lista\b",
+    # Lista robinson
     r"\blista\s+robinson\b",
+    # No volver a llamar
     r"\bno\s+volv\w*\s+(a\s+)?llamar\b",
 ]
 
 _PATTERNS_INTEREST_WITHDRAWAL: list[str] = [
     r"\bpens[aá]ndolo\s+bien\s+(ya\s+no|mejor\s+no|lo\s+dejamos)\b",
     r"\bya\s+no\s+(me\s+|nos\s+)?interesa\b",
-    r"\bcancel\w*\s+(la\s+)?(cita|reuni[oó]n|solicitud|petici[oó]n|informaci[oó]n)\b",
+    r"\bcancel\w*\s+(la\s+)?(cita|reuni[oó]n|solicitud|petici[oó]n|informaci[oó]n|propuesta)\b",
     r"\bolv[ií]da(lo|te)|d[eé]jalo\b",
     r"\bal\s+final\s+(no|nada|lo\s+dejamos)\b",
     r"\bme\s+he\s+arrepentido\b",
 ]
 
 _PATTERNS_TRANSFER_HUMAN: list[str] = [
-    r"\b(pas\w*|hablar)\s+(con\s+)?(una\s+persona|un\s+humano|alguien\s+real|un\s+operador|un\s+agente\s+humano)\b",
-    r"\bpas\w*\s+con\s+(tu\s+)?(jefe|responsable|superior|encargado)\b",
+    r"\b(p[aá]s\w*|hablar)\s+(con\s+)?(una\s+persona|un\s+humano|alguien\s+real|un\s+operador|un\s+agente\s+humano)\b",
+    r"\bp[aá]s\w*\s+con\s+(tu\s+)?(jefe|responsable|superior|encargado)\b",
     r"\bquiero\s+hablar\s+con\s+(una\s+persona|alguien\s+de\s+verdad|alguien\s+humano)\b",
     r"\beres\s+(un\s+)?robot\b",
 ]
@@ -146,11 +154,12 @@ _PATTERNS_BUSY_CALL_LATER: list[str] = [
     r"\bestoy\s+(muy\s+)?(ocupado|liado)\b",
     r"\bestoy\s+con\s+un\s+cliente\b",
     r"\bestoy\s+en\s+una\s+reuni[oó]n\b",
-    r"\bpill\w*\s+mal\b",
+    r"\bpill\w*\s+(muy\s+|bastante\s+)?mal\b",
     r"\ben\s+mal\s+momento\b",
     r"\bahora\s+mismo\s+imposible\b",
     r"\bimposible\s+atender\w*\b",
 ]
+
 
 _PATTERNS_CALLBACK_REQUEST: list[str] = [
     r"\b(ll[aá]m\w*|habl\w*)\s+(luego|m[aá]s\s+tarde|mañana|el\s+(pr[oó]ximo\s+)?\w+|la\s+semana\s+que\s+viene|por\s+la\s+tarde|en\s+otro\s+momento)\b",
@@ -247,11 +256,27 @@ _NOISE_TOKENS = {
 }
 
 
+def _remove_accents(text: str) -> str:
+    """Normaliza vocales con tilde y diéresis para garantizar coincidencias robustas en español peninsular."""
+    replacements = {
+        "á": "a",
+        "é": "e",
+        "í": "i",
+        "ó": "o",
+        "ú": "u",
+        "ü": "u",
+    }
+    for accented, unaccented in replacements.items():
+        text = text.replace(accented, unaccented)
+    return text
+
+
 def _clean_text(raw_text: str) -> str:
     if not raw_text:
         return ""
     cleaned = raw_text.strip().lower()
     cleaned = re.sub(r"[¿?¡!.,;:\"'()\[\]]", " ", cleaned)
+    cleaned = _remove_accents(cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
@@ -268,14 +293,19 @@ def _matches_any(cleaned_text: str, patterns: list[str]) -> list[str]:
 
 def classify_intent(cleaned_text: str, context: ConversationContext | None = None) -> tuple[CommercialIntent, float, list[str]]:
     """Clasifica el texto del usuario según una jerarquía estricta de seguridad y contexto."""
-    # 0. Exclusión activa irrevocable (regla suprema de seguridad)
+    # 0. Exclusión activa irrevocable en la sesión (regla suprema de seguridad)
     if context is not None and context.is_do_not_contact:
         return CommercialIntent.DO_NOT_CONTACT, 1.0, ["dnc_permanent_override"]
 
     # 1. Petición expresa de NO contacto / baja (máxima prioridad legal y comercial)
-    dnc_matches = _matches_any(cleaned_text, _PATTERNS_DO_NOT_CONTACT)
-    if dnc_matches:
-        return CommercialIntent.DO_NOT_CONTACT, 1.0, dnc_matches
+    # Proteger contra frases contradictorias como "no quiero dejar de recibir llamadas"
+    is_contradictory_dnc = bool(
+        re.search(r"\bno\s+quiero\s+dejar\s+de\s+(recibir|tener|admitir)\b", cleaned_text)
+    )
+    if not is_contradictory_dnc:
+        dnc_matches = _matches_any(cleaned_text, _PATTERNS_DO_NOT_CONTACT)
+        if dnc_matches:
+            return CommercialIntent.DO_NOT_CONTACT, 1.0, dnc_matches
 
     # 2. Retirada de interés (si en el contexto previo hubo interés o cita y ahora cancela)
     has_prior_interest = context is not None and (context.interest_expressed or context.meeting_requested)
@@ -288,7 +318,7 @@ def classify_intent(cleaned_text: str, context: ConversationContext | None = Non
     if human_matches:
         return CommercialIntent.TRANSFER_HUMAN, 0.95, human_matches
 
-    # 4. Privacidad y RGPD
+    # 4. Privacidad y tratamiento de datos
     privacy_matches = _matches_any(cleaned_text, _PATTERNS_PRIVACY_INQUIRY)
     if privacy_matches:
         return CommercialIntent.PRIVACY_INQUIRY, 0.95, privacy_matches
@@ -348,6 +378,10 @@ def classify_intent(cleaned_text: str, context: ConversationContext | None = Non
     if unknown_matches:
         return CommercialIntent.UNKNOWN_INFO, 0.85, unknown_matches
 
+    # Si hubo rechazo comercial previo (is_rejected), no reiniciar el discurso de venta ante saludos o mensajes ambiguos
+    if context is not None and context.is_rejected:
+        return CommercialIntent.SOFT_REJECTION, 0.85, ["post_rejection_no_push"]
+
     # 16. Saludo / presentación
     greeting_matches = _matches_any(cleaned_text, _PATTERNS_GREETING_PRESENTATION)
     if greeting_matches:
@@ -364,114 +398,111 @@ def generate_response_text(intent: CommercialIntent, context: ConversationContex
     if intent == CommercialIntent.DO_NOT_CONTACT:
         if context is not None and context.is_do_not_contact and context.turn_count > 0:
             return (
-                "Su solicitud de no volver a contactar ya fue registrada. "
-                "Esta conversación está concluida y sus datos han sido excluidos. "
-                "Que tenga un buen día."
+                "Su solicitud de no contacto ya quedó registrada en esta sesión y no volveremos a contactarle. "
+                "Esta conversación está concluida. Que tenga un buen día."
             )
         return (
-            "Entendido. He registrado inmediatamente su petición de no volver a contactarle "
-            "y no recibirá más llamadas ni comunicaciones de nuestra parte. "
-            "Disculpe las molestias y que tenga un buen día."
+            "Entendido. He registrado en esta sesión su petición de no volver a contactarle "
+            "y no continuaremos la llamada. Disculpe las molestias y que tenga un buen día."
         )
 
     if intent == CommercialIntent.INTEREST_WITHDRAWAL:
         return (
-            "Entendido perfectamente. Tomo nota de que no desea continuar y cancelamos "
-            "la solicitud de información. Muchas gracias por su tiempo y que tenga un buen día."
+            "Entendido perfectamente. Tomo nota en esta sesión de que prefiere no continuar "
+            "y cancelamos la propuesta. Muchas gracias por su tiempo y que tenga un buen día."
         )
 
     if intent == CommercialIntent.TRANSFER_HUMAN:
         return (
-            "Le informo con total transparencia de que soy un asistente virtual. "
-            "Tomo nota de su solicitud para que un asesor comercial de nuestro equipo humano "
-            "se ponga en contacto con usted por teléfono o correo lo antes posible."
+            "Le informo con total transparencia de que soy un asistente virtual en pruebas. "
+            "Actualmente este prototipo no dispone de transferencia directa con agentes humanos, "
+            "pero puedo registrar su solicitud para cuando el canal humano esté disponible."
         )
 
     if intent == CommercialIntent.PRIVACY_INQUIRY:
         return (
-            "Nuestros contactos proceden exclusivamente de fuentes empresariales públicas "
-            "y directorios profesionales abiertos, en estricto cumplimiento del RGPD. "
-            "Si lo desea, podemos suprimir inmediatamente sus datos o facilitarle nuestra política de privacidad."
+            "Esta llamada forma parte de una prueba técnica de un prototipo local con datos de prueba. "
+            "Si prefiere no participar o no recibir comunicaciones de prueba, indíquelo y registraremos su exclusión de inmediato."
         )
 
     if intent == CommercialIntent.PRICE_INQUIRY:
         return (
-            "Nuestras soluciones se adaptan a las necesidades y volumen de cada negocio, "
-            "por lo que no disponemos de una tarifa fija estándar. Si lo desea, el equipo comercial "
-            "puede evaluar su caso y facilitarle una propuesta a medida sin compromiso."
+            "Al tratarse de un prototipo experimental local, no disponemos de una tarifa fija estándar ni planes de precios cerrados. "
+            "Cualquier propuesta económica deberá definirse en fases posteriores del proyecto."
         )
 
     if intent == CommercialIntent.BUSY_CALL_LATER:
         return (
             "Entiendo perfectamente que le pille en un mal momento. "
-            "¿Prefiere que le contactemos mañana o en alguna otra franja horaria que le venga mejor?"
+            "¿Prefiere que intentemos contactarle mañana o en alguna otra franja horaria que le venga mejor?"
         )
 
     if intent == CommercialIntent.CALLBACK_REQUEST:
         return (
-            "De acuerdo, tomo nota de su preferencia de horario para que el equipo comercial "
-            "intente contactarle en ese momento. Muchas gracias por su tiempo y que tenga un buen día."
+            "De acuerdo, tomo nota de su preferencia de horario en esta simulación. "
+            "Muchas gracias por su atención y que tenga un buen día."
         )
 
     if intent == CommercialIntent.EXISTING_COMPETITOR:
         return (
-            "Entendido, es excelente que ya cuenten con una herramienta operativa. "
-            "Si en algún momento desean comparar funcionalidades o explorar alternativas de optimización, "
-            "quedamos a su entera disposición. Muchas gracias."
+            "Entendido, es una excelente referencia que ya cuenten con una solución operativa. "
+            "Agradezco que nos lo indique para no interferir en su operativa actual. Muchas gracias."
         )
 
     if intent == CommercialIntent.SOFT_REJECTION:
+        if context is not None and context.is_rejected and context.turn_count > 0:
+            return (
+                "Entendido. Como le comentaba, respetamos su decisión de no continuar con la propuesta. "
+                "Quedamos a su disposición si en el futuro necesita consultar algo. Que tenga un buen día."
+            )
         return (
             "Entendido, muchas gracias por su sinceridad y por atenderme. "
-            "Si en el futuro necesitan optimizar sus procesos comerciales, estaremos encantados de ayudarles. "
-            "Que tenga un buen día."
+            "Respetamos su respuesta y no insistiremos con más información. Que tenga un buen día."
         )
 
     if intent == CommercialIntent.TECHNICAL_INTEGRATION:
         return (
-            "Nuestras soluciones están diseñadas para conectarse mediante APIs y servicios estándar "
-            "con las principales plataformas del mercado. Para confirmar la compatibilidad exacta con su software específico, "
-            "un técnico de nuestro equipo puede revisarlo con usted."
+            "Este prototipo se encuentra actualmente en fase de validación de voz y no dispone de integraciones "
+            "ni APIs activas con software de terceros. Cualquier requerimiento técnico debe ser evaluado con los responsables del proyecto."
         )
 
     if intent == CommercialIntent.SCHEDULE_AVAILABILITY:
         return (
-            "Como asistente virtual no dispongo de la agenda en tiempo real del equipo. "
-            "Indíqueme qué día o franja horaria le vendría bien y se lo trasladaré al equipo comercial "
-            "para que le confirmen disponibilidad por correo."
+            "Como asistente virtual en pruebas no dispongo de agenda en tiempo real del equipo. "
+            "Indíqueme qué día o franja le convendría y la anotaremos como propuesta orientativa."
         )
 
     if intent == CommercialIntent.MEETING_REQUEST:
         return (
-            "Con mucho gusto. Tomo nota de su solicitud de reunión. "
+            "Con mucho gusto. Tomo nota de su propuesta de reunión como una solicitud pendiente. "
             "¿Qué día y franja horaria le vendría mejor, por la mañana o por la tarde? "
-            "Nuestro equipo revisará la agenda y le confirmará la cita por correo."
+            "El equipo responsable revisará la agenda y le confirmará la disponibilidad, ya que esta anotación queda como propuesta y no como cita fijada."
         )
 
     if intent == CommercialIntent.EXPRESS_INTEREST:
         return (
-            "Estupendo. Podemos prepararle un resumen con la información técnica y casos de uso. "
-            "¿Podría facilitarme su dirección de correo electrónico para que el equipo comercial se lo envíe?"
+            "Estupendo, agradezco su interés. Al tratarse de un prototipo en pruebas, "
+            "¿podría facilitarme su dirección de correo electrónico para coordinar el envío de información en cuanto esté disponible?"
         )
 
     if intent == CommercialIntent.SERVICE_INFO:
         return (
-            "Hola, soy el asistente virtual de la empresa. "
-            "Desarrollamos soluciones de software para automatizar procesos comerciales y de atención al cliente. "
-            "Para orientarle mejor, ¿qué tipo de proceso le gustaría optimizar en su negocio?"
+            "Hola, soy el asistente virtual en fase de prueba técnica. "
+            "El objetivo del proyecto es investigar la automatización de procesos de atención y consulta comercial por voz. "
+            "Para orientarle mejor, ¿qué tipo de proceso le interesaría consultar?"
         )
 
     if intent == CommercialIntent.GREETING_PRESENTATION:
         return (
-            "Hola, buenos días. Le habla el asistente virtual de la empresa. "
-            "Le contacto para presentarle brevemente cómo optimizamos la gestión comercial de negocios como el suyo. "
+            "Hola, buenos días. Le habla el asistente virtual en fase de prueba técnica. "
+            "Le contacto para comprobar el funcionamiento de nuestro sistema de diálogo por voz. "
             "¿Dispone de un par de minutos?"
         )
 
     if intent == CommercialIntent.UNKNOWN_INFO:
         return (
-            "Disculpe, no dispongo de ese dato específico en este momento. "
-            "Tomo nota de su consulta para que nuestro equipo se la aclare por correo si lo desea."
+            "Disculpe, no dispongo de ese dato específico en este prototipo. "
+            "Tomo nota de su consulta para trasladarla en la revisión técnica del sistema."
         )
 
     if intent == CommercialIntent.UNINTELLIGIBLE:
@@ -482,9 +513,10 @@ def generate_response_text(intent: CommercialIntent, context: ConversationContex
 
     # Fallback por defecto
     return (
-        "Gracias por su mensaje. Para poder orientarle adecuadamente, "
-        "¿le gustaría conocer nuestros servicios, recibir documentación o coordinar una llamada con nuestro equipo?"
+        "Gracias por su mensaje. Para poder orientarle en esta prueba técnica, "
+        "¿le gustaría conocer nuestros servicios o el propósito del prototipo, sugerir un horario o prefiere no continuar?"
     )
+
 
 
 def generate_commercial_response(

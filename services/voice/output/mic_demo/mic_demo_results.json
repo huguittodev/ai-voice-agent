@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-21 19:45:28",
+  "timestamp": "2026-10-22 15:09:09",
   "hardware_status": {
     "has_input_device": true,
     "has_output_device": true,
@@ -85,7 +85,7 @@
     "time_to_audio_available_ms": 0.01,
     "playback_attempted": true,
     "playback_successful": true,
-    "playback_trigger_latency_ms": 0.0,
+    "playback_trigger_latency_ms": 0.01,
     "turnaround_rtf": 0.1
   },
   "dialogue": {

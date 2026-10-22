@@ -52,7 +52,7 @@ def get_vram_usage_mb() -> float:
             timeout=2,
         )
         return float(out.strip().split("\n")[0])
-    except Exception:
+    except (subprocess.SubprocessError, FileNotFoundError, ValueError, IndexError, OSError):
         return 0.0
 
 
@@ -181,7 +181,7 @@ def run_full_stt_benchmark(output_json: str = "output/stt_results.json"):
         try:
             res = run_stt_benchmark_for_config(model_name, device, compute_type)
             all_benchmarks.append(res)
-        except Exception as e:
+        except (RuntimeError, ValueError, OSError) as e:
             print(
                 f"[ERROR] Falló configuración {model_name} {device} {compute_type}: {e}",
                 flush=True,

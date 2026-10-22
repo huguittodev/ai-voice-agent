@@ -2,9 +2,11 @@
 
 import sys
 
-print("[1/6] Iniciando script de diagnóstico...", flush=True)
-
+import ctranslate2
 import psutil
+import soundfile
+
+print("[1/6] Iniciando script de diagnóstico...", flush=True)
 
 print(f"[2/6] psutil cargado. Python: {sys.version.split()[0]}", flush=True)
 
@@ -14,17 +16,13 @@ print(
     flush=True,
 )
 
-print("[3/6] Importando soundfile...", flush=True)
-import soundfile
-
+print("[3/6] Comprobando soundfile...", flush=True)
 print(f"      soundfile versión: {soundfile.__version__}", flush=True)
 
 print("[4/6] Importando piper-tts...", flush=True)
 print("      piper-tts cargado correctamente", flush=True)
 
-print("[5/6] Importando ctranslate2...", flush=True)
-import ctranslate2
-
+print("[5/6] Comprobando ctranslate2...", flush=True)
 print(f"      CTranslate2 versión: {ctranslate2.__version__}", flush=True)
 
 print("[6/6] Verificando soporte CPU y CUDA...", flush=True)
@@ -38,7 +36,7 @@ try:
     if cuda_count > 0:
         supported_cuda = ctranslate2.get_supported_compute_types("cuda")
         print(f"      Tipos soportados en CUDA: {supported_cuda}", flush=True)
-except Exception as e:
+except (RuntimeError, ValueError, OSError) as e:
     print(f"      Aviso/Error comprobando CUDA: {e}", flush=True)
 
 print("=== DIAGNÓSTICO COMPLETADO EXITOSAMENTE ===", flush=True)

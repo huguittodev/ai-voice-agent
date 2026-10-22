@@ -11,15 +11,11 @@ Flujo:
 """
 
 import argparse
-from dataclasses import asdict
 import json
 import os
-import sys
 import time
 import wave
-
-# Añadir src al path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+from dataclasses import asdict
 
 from voice.audio_capture import (
     AudioDeviceStatus,

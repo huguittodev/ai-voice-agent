@@ -5,29 +5,26 @@ para prevenir bloqueos indefinidos del hilo principal ante inanición de muestra
 nativos de PortAudio/WSLg.
 """
 
-from dataclasses import dataclass, field
 import multiprocessing
 import os
 import shutil
 import subprocess
 import time
-from typing import Any, Dict, List, Optional
 import wave
+from dataclasses import dataclass, field
+from typing import Any
 
 
 class AudioHardwareError(Exception):
     """Excepción base para incidencias con dispositivos de audio."""
-    pass
 
 
 class MicrophoneNotAvailableError(AudioHardwareError):
     """Dispositivo de entrada de audio no disponible, incompatible o sin muestras."""
-    pass
 
 
 class AudioPlaybackError(AudioHardwareError):
     """Dispositivo de salida de audio no disponible o bloqueado durante reproducción."""
-    pass
 
 
 @dataclass
@@ -35,15 +32,15 @@ class AudioDeviceStatus:
     has_input_device: bool
     has_output_device: bool
     backend_name: str
-    input_device_name: Optional[str]
-    output_device_name: Optional[str]
-    error_detail: Optional[str]
-    default_input_index: Optional[int] = None
-    default_output_index: Optional[int] = None
-    available_devices: List[Dict[str, Any]] = field(default_factory=list)
+    input_device_name: str | None
+    output_device_name: str | None
+    error_detail: str | None
+    default_input_index: int | None = None
+    default_output_index: int | None = None
+    available_devices: list[dict[str, Any]] = field(default_factory=list)
 
 
-def check_audio_hardware(device: Optional[int] = None) -> AudioDeviceStatus:
+def check_audio_hardware(device: int | None = None) -> AudioDeviceStatus:
     """Verifica la presencia y accesibilidad de dispositivos de captura y reproducción.
     
     Si se especifica `device`, comprueba explícitamente dicho dispositivo como entrada.
@@ -141,7 +138,7 @@ def check_audio_hardware(device: Optional[int] = None) -> AudioDeviceStatus:
             error_detail="La librería 'sounddevice' no está instalada en el entorno.",
             available_devices=[],
         )
-    except Exception as e:
+    except OSError as e:
         err_msg = str(e)
         if "PortAudio library not found" in err_msg:
             detail = (
@@ -167,7 +164,7 @@ def _worker_record_process(
     duration_seconds: float,
     sample_rate: int,
     channels: int,
-    device: Optional[int],
+    device: int | None,
     result_queue: Any,
 ) -> None:
     """Función de captura ejecutada dentro de un subproceso aislado.
@@ -205,10 +202,10 @@ def _worker_record_process(
         actual_channels = min(channels, max_in)
 
         num_frames = int(duration_seconds * sample_rate)
-        frames_captured: List[np.ndarray] = []
-        stream_errors: List[str] = []
+        frames_captured: list[np.ndarray] = []
+        stream_errors: list[str] = []
 
-        def audio_callback(indata, frames, time_info, status):
+        def audio_callback(indata, _frames, _time_info, status):
             if status:
                 stream_errors.append(str(status))
             frames_captured.append(indata.copy())
@@ -262,7 +259,7 @@ def _worker_record_process(
             "errors": stream_errors,
         })
 
-    except Exception as e:
+    except (OSError, RuntimeError, ValueError) as e:
         result_queue.put({
             "success": False,
             "error": f"Error en flujo de captura: {e}",
@@ -274,8 +271,8 @@ def record_microphone_speech(
     duration_seconds: float = 5.0,
     sample_rate: int = 16000,
     channels: int = 1,
-    device: Optional[int] = None,
-    timeout_seconds: Optional[float] = None,
+    device: int | None = None,
+    timeout_seconds: float | None = None,
 ) -> float:
     """Captura audio del micrófono por una duración fija y lo guarda en formato WAV PCM 16-bit.
     
@@ -349,7 +346,7 @@ def record_microphone_speech(
 
 def _worker_play_process(
     wav_path: str,
-    device: Optional[int],
+    device: int | None,
     result_queue: Any,
 ) -> None:
     """Función de reproducción ejecutada en un subproceso aislado."""
@@ -374,14 +371,14 @@ def _worker_play_process(
 
         result_queue.put({"success": True})
 
-    except Exception as e:
+    except (OSError, RuntimeError) as e:
         result_queue.put({"success": False, "error": str(e)})
 
 
 def play_audio_file(
     wav_path: str,
-    device: Optional[int] = None,
-    timeout_seconds: Optional[float] = None,
+    device: int | None = None,
+    timeout_seconds: float | None = None,
 ) -> bool:
     """Intenta reproducir un archivo de audio mediante sounddevice o herramientas de sistema.
     
@@ -394,7 +391,7 @@ def play_audio_file(
     try:
         with wave.open(wav_path, "rb") as wf:
             wav_duration = wf.getnframes() / float(wf.getframerate())
-    except Exception:
+    except (wave.Error, OSError):
         wav_duration = 3.0
 
     status = check_audio_hardware()
@@ -425,9 +422,8 @@ def play_audio_file(
                 if res.get("success"):
                     print("[Altavoz] Reproducción finalizada con éxito.", flush=True)
                     return True
-                else:
-                    print(f"  [Aviso] Falló reproducción: {res.get('error')}", flush=True)
-        except Exception as e:
+                print(f"  [Aviso] Falló reproducción: {res.get('error')}", flush=True)
+        except (multiprocessing.ProcessError, OSError) as e:
             print(f"  [Aviso] Error gestionando subproceso de reproducción: {e}", flush=True)
 
     # Si sounddevice falló o no está disponible, intentar herramientas CLI del sistema con timeout explícito
@@ -443,7 +439,7 @@ def play_audio_file(
                     timeout=wav_duration + 2.0,
                 )
                 return True
-            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+            except subprocess.SubprocessError:
                 pass
 
     print(f"[Altavoz] Reproductor directo no disponible. Archivo listo para escucha en: {wav_path}", flush=True)

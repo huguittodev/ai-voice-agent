@@ -7,10 +7,17 @@ import subprocess
 import sys
 
 
+def _check_is_wsl() -> bool:
+    if not os.path.exists("/proc/version"):
+        return False
+    with open("/proc/version", encoding="utf-8") as f:
+        return "microsoft" in f.read().lower()
+
+
 def inspect_audio_devices():
     diagnostic = {
         "platform": sys.platform,
-        "is_wsl": "microsoft" in open("/proc/version").read().lower() if os.path.exists("/proc/version") else False,
+        "is_wsl": _check_is_wsl(),
         "env_vars": {
             "PULSE_SERVER": os.environ.get("PULSE_SERVER"),
             "WAYLAND_DISPLAY": os.environ.get("WAYLAND_DISPLAY"),
@@ -40,7 +47,7 @@ def inspect_audio_devices():
         try:
             out = subprocess.check_output(["arecord", "-l"], text=True, stderr=subprocess.STDOUT, timeout=2)
             diagnostic["alsa_devices"]["capture"] = out.strip().split("\n")
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             diagnostic["alsa_devices"]["capture"] = [f"Error ejecutando arecord -l: {e}"]
 
     # Comprobar aplay -l
@@ -48,7 +55,7 @@ def inspect_audio_devices():
         try:
             out = subprocess.check_output(["aplay", "-l"], text=True, stderr=subprocess.STDOUT, timeout=2)
             diagnostic["alsa_devices"]["playback"] = out.strip().split("\n")
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             diagnostic["alsa_devices"]["playback"] = [f"Error ejecutando aplay -l: {e}"]
 
     # Comprobar sounddevice si está instalado
@@ -62,7 +69,7 @@ def inspect_audio_devices():
         diagnostic["default_output_device"] = default_out
     except ImportError:
         diagnostic["sounddevice_error"] = "Librería sounddevice no instalada en el venv."
-    except Exception as e:
+    except (RuntimeError, OSError) as e:
         diagnostic["sounddevice_error"] = f"Error consultando sounddevice: {e}"
 
     print("=== DIAGNÓSTICO DE AUDIO ===", flush=True)

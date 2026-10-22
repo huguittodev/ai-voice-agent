@@ -132,7 +132,7 @@ class TestCommercialScenarios:
         for text in phrases:
             resp = generate_commercial_response(text)
             assert resp.intent == CommercialIntent.EXISTING_COMPETITOR
-            assert "proveedor" in resp.response_text.lower() or "herramienta" in resp.response_text.lower()
+            assert "solución" in resp.response_text.lower() or "operativa" in resp.response_text.lower()
             assert not resp.is_do_not_contact
 
     def test_scenario_08_soft_rejection(self):
@@ -162,6 +162,10 @@ class TestCommercialScenarios:
             "Eliminad mi contacto de vuestra lista",
             "Estoy en la lista Robinson, no me vuelvas a llamar",
             "No volváis a molestar",
+            "Borrad mis datos",
+            "Borrad nuestros datos",
+            "No me llaméis más, aunque os diga otra cosa ahora",
+            "No quiero que me llaméis",
         ]
         for text in phrases:
             resp = generate_commercial_response(text)
@@ -169,7 +173,7 @@ class TestCommercialScenarios:
             assert resp.is_do_not_contact is True
             assert resp.context.is_do_not_contact is True
             assert "no volver a contactarle" in resp.response_text.lower()
-            assert "no recibirá más" in resp.response_text.lower()
+            assert "no continuaremos" in resp.response_text.lower()
 
     def test_scenario_10_callback_request(self):
         """Escenario 10: Petición de rellamada en otro horario."""
@@ -197,8 +201,8 @@ class TestCommercialScenarios:
         for text in phrases:
             resp = generate_commercial_response(text)
             assert resp.intent == CommercialIntent.TRANSFER_HUMAN
-            assert "soy un asistente virtual" in resp.response_text.lower()
-            assert "equipo humano" in resp.response_text.lower()
+            assert "asistente virtual" in resp.response_text.lower()
+            assert "humano" in resp.response_text.lower()
 
     def test_scenario_12_privacy_inquiry(self):
         """Escenario 12: Preguntas sobre privacidad y origen de los datos."""
@@ -212,8 +216,7 @@ class TestCommercialScenarios:
         for text in phrases:
             resp = generate_commercial_response(text)
             assert resp.intent == CommercialIntent.PRIVACY_INQUIRY
-            assert "fuentes empresariales públicas" in resp.response_text.lower()
-            assert "rgpd" in resp.response_text.lower()
+            assert "prototipo" in resp.response_text.lower()
 
     def test_scenario_13_technical_integration(self):
         """Escenario 13: Preguntas sobre integraciones técnicas y APIs."""
@@ -227,8 +230,7 @@ class TestCommercialScenarios:
         for text in phrases:
             resp = generate_commercial_response(text)
             assert resp.intent == CommercialIntent.TECHNICAL_INTEGRATION
-            assert "apis" in resp.response_text.lower()
-            assert "compatibilidad exacta" in resp.response_text.lower()
+            assert "prototipo" in resp.response_text.lower()
 
     def test_scenario_14_schedule_availability(self):
         """Escenario 14: Preguntas sobre disponibilidad de agenda."""
@@ -242,8 +244,7 @@ class TestCommercialScenarios:
         for text in phrases:
             resp = generate_commercial_response(text)
             assert resp.intent == CommercialIntent.SCHEDULE_AVAILABILITY
-            assert "no dispongo de la agenda en tiempo real" in resp.response_text.lower()
-            assert "confirmen disponibilidad" in resp.response_text.lower()
+            assert "no dispongo" in resp.response_text.lower()
 
     def test_scenario_15_unintelligible(self):
         """Escenario 15: Silencio, ruido o transcripción vacía."""
@@ -277,7 +278,7 @@ class TestCommercialScenarios:
         for text in phrases:
             resp = generate_commercial_response(text)
             assert resp.intent == CommercialIntent.FALLBACK_CLARIFICATION
-            assert "¿le gustaría conocer nuestros servicios" in resp.response_text.lower()
+            assert "orientarle" in resp.response_text.lower()
 
     def test_scenario_17_unknown_info(self):
         """Escenario 17: Pregunta sobre datos que el agente desconoce."""
@@ -311,7 +312,7 @@ class TestCommercialScenarios:
             c = ConversationContext(interest_expressed=True)
             resp2 = generate_commercial_response(phrase, context=c)
             assert resp2.intent == CommercialIntent.INTEREST_WITHDRAWAL
-            assert "cancelamos la solicitud" in resp2.response_text.lower()
+            assert "cancelamos" in resp2.response_text.lower()
             assert c.interest_expressed is False
             assert c.is_rejected is True
 
@@ -366,7 +367,7 @@ class TestMultiTurnDialogueAndState:
             r = generate_commercial_response(attempt, context=ctx)
             assert r.intent == CommercialIntent.DO_NOT_CONTACT
             assert r.is_do_not_contact is True
-            assert "ya fue registrada" in r.response_text.lower()
+            assert "ya quedó registrada" in r.response_text.lower()
             assert "concluida" in r.response_text.lower()
 
     def test_soft_rejection_stops_commercial_push(self):
@@ -382,6 +383,66 @@ class TestMultiTurnDialogueAndState:
         assert ctx.is_rejected is True
         assert ctx.is_do_not_contact is False
         assert "que tenga un buen día" in r2.response_text.lower()
+
+    def test_soft_rejection_prevents_subsequent_sales_pitch(self):
+        """Después de un rechazo comercial, mensajes ambiguos o saludos no reactivan el pitch de venta."""
+        ctx = ConversationContext()
+
+        # Turno 1: Saludo inicial
+        generate_commercial_response("Hola, buenos días", context=ctx)
+
+        # Turno 2: Rechazo explícito
+        generate_commercial_response("No me interesa, gracias", context=ctx)
+        assert ctx.is_rejected is True
+
+        # Turno 3: Saludo casual posterior
+        r3 = generate_commercial_response("Hola de nuevo", context=ctx)
+        # No debe volver a GREETING_PRESENTATION (que pide minutos para vender)
+        assert r3.intent == CommercialIntent.SOFT_REJECTION
+        assert "respetamos su decisión" in r3.response_text.lower()
+
+        # Turno 4: Frase ambigua
+        r4 = generate_commercial_response("De acuerdo", context=ctx)
+        assert r4.intent == CommercialIntent.SOFT_REJECTION
+        assert "no continuar" in r4.response_text.lower()
+
+    def test_isolated_contexts_do_not_leak_state(self):
+        """Dos instancias de ConversationContext distintas mantienen estado estrictamente independiente."""
+        ctx_a = ConversationContext()
+        ctx_b = ConversationContext()
+
+        # Sesión A activa DNC
+        r_a = generate_commercial_response("No me llaméis más y borrad mi número", context=ctx_a)
+        assert r_a.intent == CommercialIntent.DO_NOT_CONTACT
+        assert ctx_a.is_do_not_contact is True
+
+        # Sesión B inicia normalmente y no está bloqueada
+        r_b = generate_commercial_response("Hola, buenos días", context=ctx_b)
+        assert r_b.intent == CommercialIntent.GREETING_PRESENTATION
+        assert ctx_b.is_do_not_contact is False
+        assert ctx_b.is_rejected is False
+
+
+class TestContradictoryAndEdgePhrases:
+    """Pruebas de casos borde, negaciones contradictorias y delimitación semántica."""
+
+    def test_contradictory_dnc_negative_case(self):
+        """«No quiero dejar de recibir llamadas» no debe clasificarse erróneamente como DNC."""
+        resp = generate_commercial_response("No quiero dejar de recibir llamadas")
+        assert resp.intent != CommercialIntent.DO_NOT_CONTACT
+        assert resp.is_do_not_contact is False
+
+    def test_callback_with_negative_preface(self):
+        """«No me interesa ahora, llamadme el lunes» debe ser CALLBACK_REQUEST, no rechazo definitivo ni DNC."""
+        resp = generate_commercial_response("No me interesa ahora, llamadme el lunes")
+        assert resp.intent == CommercialIntent.CALLBACK_REQUEST
+        assert resp.is_do_not_contact is False
+
+    def test_dnc_with_conflicting_clauses(self):
+        """«No me llaméis más, aunque os diga otra cosa ahora» debe priorizar DNC sobre cualquier ambigüedad."""
+        resp = generate_commercial_response("No me llaméis más, aunque os diga otra cosa ahora")
+        assert resp.intent == CommercialIntent.DO_NOT_CONTACT
+        assert resp.is_do_not_contact is True
 
 
 class TestCommercialSafetyInvariants:
@@ -404,29 +465,37 @@ class TestCommercialSafetyInvariants:
 
         human_reply = generate_response_text(CommercialIntent.TRANSFER_HUMAN)
         assert "asistente virtual" in human_reply.lower()
-        assert "humano" not in human_reply.lower() or "equipo humano" in human_reply.lower()
 
         service_reply = generate_response_text(CommercialIntent.SERVICE_INFO)
         assert "asistente virtual" in service_reply.lower()
 
     def test_meeting_is_never_confirmed_unilaterally(self):
-        """Una solicitud de reunión se registra siempre como pendiente de confirmación."""
+        """Una solicitud de reunión se registra siempre como propuesta y no como confirmada."""
         meeting_reply = generate_response_text(CommercialIntent.MEETING_REQUEST)
-        assert "confirmará la cita" in meeting_reply.lower()
+        assert "no constituye una reserva confirmada" in meeting_reply.lower() or "propuesta" in meeting_reply.lower()
         assert "cita confirmada" not in meeting_reply.lower()
         assert "reserva confirmada" not in meeting_reply.lower()
 
     def test_schedule_availability_never_invents_slots(self):
         """La consulta de disponibilidad reconoce la falta de agenda en tiempo real."""
         sched_reply = generate_response_text(CommercialIntent.SCHEDULE_AVAILABILITY)
-        assert "no dispongo de la agenda en tiempo real" in sched_reply.lower()
+        assert "no dispongo" in sched_reply.lower()
+
+    def test_no_false_unverified_claims(self):
+        """Las respuestas no deben afirmar capacidades no implementadas ni orígenes de datos falsos."""
+        privacy_text = generate_response_text(CommercialIntent.PRIVACY_INQUIRY)
+        assert "fuentes empresariales públicas" not in privacy_text.lower()
+
+        tech_text = generate_response_text(CommercialIntent.TECHNICAL_INTEGRATION)
+        assert "principales plataformas del mercado" not in tech_text.lower()
+        assert "no dispone de integraciones" in tech_text.lower()
 
 
 class TestEnginePerformanceAndLatency:
     """Medición de la latencia del motor determinista (< 5 ms objetivo)."""
 
     def test_decision_latency_benchmark(self):
-        """Evalúa 1.000 iteraciones midiendo mediana, media y máximo."""
+        """Evalúa 20 iteraciones sobre 14 entradas (280 muestras) midiendo mediana, media, P95 y máximo."""
         test_inputs = [
             "Hola, buenos días",
             "¿Qué servicios ofrecéis?",
@@ -477,3 +546,4 @@ class TestEnginePerformanceAndLatency:
         # Criterio de rendimiento: la mediana debe ser inferior a 1.0 ms (muy por debajo de 5 ms)
         assert median_ms < 1.0, f"Mediana de latencia excesiva: {median_ms:.3f} ms"
         assert p95_ms < 5.0, f"P95 de latencia excesiva: {p95_ms:.3f} ms"
+

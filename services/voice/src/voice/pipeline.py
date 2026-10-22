@@ -16,7 +16,11 @@ import psutil
 from faster_whisper import WhisperModel
 from piper.voice import PiperVoice
 
-from voice.responder import CommercialResponse, generate_commercial_response
+from voice.responder import (
+    CommercialResponse,
+    ConversationContext,
+    generate_commercial_response,
+)
 
 
 def _get_vram_mb() -> float:
@@ -27,7 +31,7 @@ def _get_vram_mb() -> float:
             timeout=2,
         )
         return float(out.strip().split("\n")[0])
-    except Exception:
+    except (subprocess.SubprocessError, FileNotFoundError, ValueError, IndexError):
         return 0.0
 
 
@@ -70,6 +74,9 @@ class TurnTelemetry:
     stt_compute_type: str
     tts_model_path: str
 
+    # Contexto conversacional multi-turno
+    context: ConversationContext | None = None
+
 
 class ConversationTurnPipeline:
     """Orquestador persistente del turno conversacional para mediciones warm y cold."""
@@ -81,6 +88,7 @@ class ConversationTurnPipeline:
         stt_compute_type: str = "int8",
         tts_model_path: str = "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx",
         tts_config_path: str = "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx.json",
+        active_context: ConversationContext | None = None,
     ):
         self.stt_model_name = stt_model_name
         self.stt_device = stt_device
@@ -94,6 +102,16 @@ class ConversationTurnPipeline:
         self.cold_load_stt_ms: float = 0.0
         self.cold_load_tts_ms: float = 0.0
         self.is_loaded: bool = False
+
+        # Contexto conversacional activo para turnos sucesivos
+        self.active_context: ConversationContext = (
+            active_context if active_context is not None else ConversationContext()
+        )
+
+    def reset_conversation(self) -> ConversationContext:
+        """Reinicia la conversación actual creando un nuevo contexto independiente."""
+        self.active_context = ConversationContext()
+        return self.active_context
 
     def load_models(self) -> None:
         """Carga en memoria los modelos STT y TTS midiendo tiempos de arranque en frío."""
@@ -122,13 +140,21 @@ class ConversationTurnPipeline:
             flush=True,
         )
 
-    def process_turn(self, input_wav_path: str, output_wav_path: str) -> TurnTelemetry:
-        """Ejecuta un turno completo de conversación de extremo a extremo."""
+    def process_turn(
+        self,
+        input_wav_path: str,
+        output_wav_path: str,
+        context: ConversationContext | None = None,
+    ) -> TurnTelemetry:
+        """Ejecuta un turno completo de conversación preservando o asignando el contexto conversacional."""
         if not self.is_loaded:
             self.load_models()
 
         assert self.whisper_model is not None
         assert self.piper_voice is not None
+
+        # Determinar el contexto a utilizar (el explícito o el de la sesión activa)
+        ctx = context if context is not None else self.active_context
 
         os.makedirs(os.path.dirname(output_wav_path), exist_ok=True)
         input_duration_s = _get_audio_duration_seconds(input_wav_path)
@@ -144,10 +170,10 @@ class ConversationTurnPipeline:
         transcribed_text = " ".join([seg.text.strip() for seg in segments]).strip()
         stt_inference_ms = (time.perf_counter() - t_stt_start) * 1000.0
 
-        # 2. Generación determinista de respuesta
+        # 2. Generación determinista de respuesta usando el contexto conversacional
         t_dec_start = time.perf_counter()
         commercial_resp: CommercialResponse = generate_commercial_response(
-            transcribed_text
+            transcribed_text, context=ctx
         )
         response_text = commercial_resp.response_text
         decision_ms = (time.perf_counter() - t_dec_start) * 1000.0
@@ -190,4 +216,6 @@ class ConversationTurnPipeline:
             stt_device=self.stt_device,
             stt_compute_type=self.stt_compute_type,
             tts_model_path=self.tts_model_path,
+            context=ctx,
         )
+

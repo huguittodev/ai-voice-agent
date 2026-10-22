@@ -40,4 +40,14 @@
 - Decision: strictly enforce transparency (always identify as a virtual assistant), forbid inventing prices or dates, and treat meeting proposals exclusively as requests pending confirmation by the human commercial team.
 - Status: Phase 2 engine and automated test suite implemented.
 
+## 2026-10-22 — Phase 2 Audit Remediation
+
+- Decision: eliminate unverified claims from response templates (no claims of public directory data origins, no guarantees of RGPD compliance, no fabricated standard APIs or connectors, and no claims of executed database deletions or guaranteed human callbacks).
+- Decision: maintain `ConversationContext` in memory across turns in `ConversationTurnPipeline` (`self.active_context`), supporting multi-turn dialogue while keeping single-turn backward compatibility.
+- Decision: explicitly delineate that `DO_NOT_CONTACT` and rejection states in Phase 2 are strictly in-memory per session; no database, disk persistence or cross-session persistence is introduced until the CRM phase.
+- Decision: normalize vowel accents (`_remove_accents`) in phonetic preprocessing to prevent enclitic variations (e.g., peninsular Spanish *pásame*, *eliminad*, *borrad*) and Whisper transcription variations from escaping deterministic safety classifiers.
+- Decision: prevent sales restarts after rejection (`is_rejected`); subsequent greetings or ambiguous fallback inputs return respectful closing statements instead of sales pitches.
+- Decision: decouple regression test suite from pre-generated manual audio/benchmark artifacts in `output/` using `pytest.skip` guards so tests succeed on clean checkouts without running manual benchmarks.
+- Status: Phase 2 defects remediated; test suite passing with multi-turn integration tests.
+
 

@@ -11,15 +11,10 @@ Ejecuta el pipeline completo y mide la latencia de cada etapa.
 
 import json
 import os
-import sys
 import wave
 from dataclasses import asdict
 
 import numpy as np
-
-# Asegurar que src está en el path si se ejecuta directamente
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
-
 from piper.voice import PiperVoice
 
 from voice.pipeline import ConversationTurnPipeline, TurnTelemetry
@@ -165,7 +160,6 @@ def run_single_turn_demo() -> dict:
         )
 
     # Resumen y métricas globales
-    warm_turns = scenario_results[1:] if len(scenario_results) > 1 else scenario_results
     avg_stt_ms = np.mean([r["telemetry"]["stt_inference_ms"] for r in scenario_results])
     avg_tts_ms = np.mean([r["telemetry"]["tts_synthesis_ms"] for r in scenario_results])
     avg_total_ms = np.mean(
