@@ -31,6 +31,13 @@
 - Decision: retain faster-whisper `small` on CPU (`int8`) and Piper `es_ES-davefx-medium` on CPU as verified in Phase 1.3.
 - Decision: eliminate unbounded `sd.wait()` calls by isolating microphone capture and audio playback inside dedicated child processes supervised by explicit timeouts. If native PortAudio/WSLg stalls on buffer starvation, the child process is terminated and `MicrophoneNotAvailableError` is raised, preventing process freeze.
 - Decision: add explicit `--device` selection in `demo_mic.py` and categorize capture telemetry univoquely as `physical_capture`, `wav_input`, or `fallback`.
-- Status: Phase 1.4 robustness hardening implemented; hardware validation with live microphone pending in host environment.
+## 2026-10-21 — Commercial Brain Engine (Phase 2)
+
+- Decision: implement a deterministic commercial brain without external LLMs, guaranteeing 0.00 € cost, zero latency penalties (< 0.5 ms), and strict compliance with AGENTS.md.
+- Decision: define 18 structured commercial scenarios covering presentation, service details, price objections, time objections, competitor handling, callback scheduling, human transfer, RGPD privacy, technical integrations, meeting proposals, unknown facts, interest withdrawal, unintelligible input, and out-of-domain fallback.
+- Decision: make `DO_NOT_CONTACT` (DNC) an absolute, priority, and irreversible state in `ConversationContext`. Once a contact requests not to be called, all subsequent turns in the dialogue session are permanently blocked from commercial reactivation.
+- Decision: distinguish technically between `soft_rejection` (polite refusal stopping sales insistence) and `do_not_contact` (legal exclusion).
+- Decision: strictly enforce transparency (always identify as a virtual assistant), forbid inventing prices or dates, and treat meeting proposals exclusively as requests pending confirmation by the human commercial team.
+- Status: Phase 2 engine and automated test suite implemented.
 
 

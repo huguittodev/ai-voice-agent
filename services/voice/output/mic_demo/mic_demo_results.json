@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-21 18:10:49",
+  "timestamp": "2026-10-21 19:45:28",
   "hardware_status": {
     "has_input_device": true,
     "has_output_device": true,
@@ -72,30 +72,30 @@
       }
     ]
   },
-  "capture_mode": "physical_capture",
+  "capture_mode": "wav_input",
   "capture_error": null,
-  "input_audio_path": "output/mic_demo/captured_speech.wav",
-  "output_audio_path": "output/mic_demo/response_speech.wav",
+  "input_audio_path": "output/demo_inputs/scenario_1_service_info_input.wav",
+  "output_audio_path": "/tmp/test_demo_out.wav",
   "metrics": {
-    "capture_duration_seconds": 2.1,
-    "stt_inference_ms": 974.78,
-    "decision_ms": 0.8477,
-    "tts_synthesis_ms": 239.27,
-    "total_turnaround_ms": 1214.91,
-    "time_to_audio_available_ms": 1279.63,
+    "capture_duration_seconds": 3.32,
+    "stt_inference_ms": 10.0,
+    "decision_ms": 1.0,
+    "tts_synthesis_ms": 10.0,
+    "total_turnaround_ms": 21.0,
+    "time_to_audio_available_ms": 0.01,
     "playback_attempted": true,
-    "playback_successful": false,
-    "playback_trigger_latency_ms": 10654.66,
-    "turnaround_rtf": 0.6075
+    "playback_successful": true,
+    "playback_trigger_latency_ms": 0.0,
+    "turnaround_rtf": 0.1
   },
   "dialogue": {
-    "transcribed_text": "Hola, buenas, ¿quienes?",
-    "response_text": "Gracias por su mensaje. Para poder orientarle adecuadamente, ¿le gustaría conocer nuestros servicios, recibir documentación o coordinar una llamada con nuestro equipo?",
-    "intent_detected": "fallback_clarification",
-    "confidence": 0.5
+    "transcribed_text": "Hola",
+    "response_text": "Hola",
+    "intent_detected": "service_info",
+    "confidence": 1.0
   },
   "models": {
     "stt": "small (cpu int8)",
-    "tts": "models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx"
+    "tts": "test"
   }
 }

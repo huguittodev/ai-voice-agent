@@ -360,7 +360,7 @@ def _worker_play_process(
         data, fs = sf.read(wav_path, dtype="float32")
         duration = len(data) / float(fs)
 
-        target_device = device if device is not None else sd.default.device[1]
+        target_device = device if device is not None else (sd.default.device[1] if (sd.default.device[1] is not None and sd.default.device[1] >= 0) else None)
 
         sd.play(data, samplerate=fs, device=target_device)
         deadline = time.perf_counter() + duration + 1.5
@@ -405,7 +405,7 @@ def play_audio_file(
 
         proc = ctx.Process(
             target=_worker_play_process,
-            args=(wav_path, device, result_queue),
+            args=(wav_path, device if device is not None else status.default_output_index, result_queue),
         )
 
         try:

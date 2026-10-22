@@ -5,22 +5,20 @@ errores de hardware y regresión de artefactos sin depender de hardware físico 
 """
 
 import json
-import multiprocessing
 import os
-import time
-from unittest.mock import MagicMock, patch
 import wave
+from unittest.mock import MagicMock, patch
+
 import pytest
 
+from demo_mic import run_mic_dialogue_demo
 from voice.audio_capture import (
     AudioDeviceStatus,
-    AudioPlaybackError,
     MicrophoneNotAvailableError,
     check_audio_hardware,
     play_audio_file,
     record_microphone_speech,
 )
-from demo_mic import run_mic_dialogue_demo
 
 
 class TestAudioHardwareInspection:
@@ -64,48 +62,45 @@ class TestMicrophoneCaptureRobustness:
 
     def test_record_handles_worker_starvation_error(self):
         """Simula que el worker de captura reporta inanición de muestras (0 samples)."""
-        def fake_worker(out_path, dur, sr, ch, dev, queue):
-            queue.put({
-                "success": False,
-                "error": "Inanición de muestras: 0 datos recibidos del dispositivo.",
-            })
-
-        with patch("multiprocessing.context.SpawnProcess") as mock_proc_cls:
+        with patch("multiprocessing.get_context") as mock_get_context:
+            mock_ctx = MagicMock()
+            mock_get_context.return_value = mock_ctx
             mock_proc = MagicMock()
             mock_proc.is_alive.return_value = False
             mock_proc.exitcode = 0
-            mock_proc_cls.return_value = mock_proc
+            mock_ctx.Process.return_value = mock_proc
 
-            with patch("multiprocessing.context.SpawnContext.Queue") as mock_q_cls:
-                mock_queue = MagicMock()
-                mock_queue.empty.return_value = False
-                mock_queue.get.return_value = {
-                    "success": False,
-                    "error": "Inanición de muestras: 0 datos recibidos.",
-                }
-                mock_q_cls.return_value = mock_queue
+            mock_queue = MagicMock()
+            mock_queue.empty.return_value = False
+            mock_queue.get.return_value = {
+                "success": False,
+                "error": "Inanición de muestras: 0 datos recibidos.",
+            }
+            mock_ctx.Queue.return_value = mock_queue
 
-                with patch("voice.audio_capture.check_audio_hardware") as mock_check:
-                    mock_check.return_value = AudioDeviceStatus(
-                        has_input_device=True,
-                        has_output_device=True,
-                        backend_name="test",
-                        input_device_name="Fake In",
-                        output_device_name="Fake Out",
-                        error_detail=None,
-                        default_input_index=0,
-                    )
-                    with pytest.raises(MicrophoneNotAvailableError) as exc_info:
-                        record_microphone_speech("/tmp/test_starvation.wav", duration_seconds=0.1, timeout_seconds=0.5)
-                    assert "inanición de muestras" in str(exc_info.value).lower()
+            with patch("voice.audio_capture.check_audio_hardware") as mock_check:
+                mock_check.return_value = AudioDeviceStatus(
+                    has_input_device=True,
+                    has_output_device=True,
+                    backend_name="test",
+                    input_device_name="Fake In",
+                    output_device_name="Fake Out",
+                    error_detail=None,
+                    default_input_index=0,
+                )
+                with pytest.raises(MicrophoneNotAvailableError) as exc_info:
+                    record_microphone_speech("/tmp/test_starvation.wav", duration_seconds=0.1, timeout_seconds=0.5)
+                assert "inanición de muestras" in str(exc_info.value).lower()
 
     def test_record_terminates_child_process_on_timeout(self):
         """Verifica que si el subproceso se bloquea, el supervisor lo cancela forzosamente."""
-        with patch("multiprocessing.context.SpawnProcess") as mock_proc_cls:
+        with patch("multiprocessing.get_context") as mock_get_context:
+            mock_ctx = MagicMock()
+            mock_get_context.return_value = mock_ctx
             mock_proc = MagicMock()
             # El subproceso sigue vivo tras el timeout de join
             mock_proc.is_alive.return_value = True
-            mock_proc_cls.return_value = mock_proc
+            mock_ctx.Process.return_value = mock_proc
 
             with patch("voice.audio_capture.check_audio_hardware") as mock_check:
                 mock_check.return_value = AudioDeviceStatus(
@@ -142,10 +137,12 @@ class TestPlaybackRobustness:
         if not os.path.exists(sample_wav):
             pytest.skip("WAV de prueba no disponible en disco")
 
-        with patch("multiprocessing.context.SpawnProcess") as mock_proc_cls:
+        with patch("multiprocessing.get_context") as mock_get_context:
+            mock_ctx = MagicMock()
+            mock_get_context.return_value = mock_ctx
             mock_proc = MagicMock()
             mock_proc.is_alive.return_value = True
-            mock_proc_cls.return_value = mock_proc
+            mock_ctx.Process.return_value = mock_proc
 
             with patch("voice.audio_capture.check_audio_hardware") as mock_check:
                 mock_check.return_value = AudioDeviceStatus(
@@ -156,10 +153,11 @@ class TestPlaybackRobustness:
                     output_device_name="Fake Out",
                     error_detail=None,
                 )
-                # Debe retornar False limpiamente
-                result = play_audio_file(sample_wav, timeout_seconds=0.2)
-                assert result is False
-                assert mock_proc.terminate.called
+                with patch("shutil.which", return_value=None):
+                    # Debe retornar False limpiamente
+                    result = play_audio_file(sample_wav, timeout_seconds=0.2)
+                    assert result is False
+                    assert mock_proc.terminate.called
 
 
 class TestMicDemoIntegration:
@@ -172,31 +170,36 @@ class TestMicDemoIntegration:
 
         out_wav = "/tmp/test_demo_out.wav"
         # Probamos que el modo provisto se registra como wav_input
-        with patch("voice.pipeline.ConversationTurnPipeline.load_models"):
-            with patch("voice.pipeline.ConversationTurnPipeline.process_turn") as mock_turn:
-                from voice.pipeline import TurnTelemetry
-                mock_turn.return_value = TurnTelemetry(
-                    turn_id=1,
-                    input_audio_path=sample_wav,
-                    input_audio_duration_s=3.32,
-                    stt_inference_ms=10.0,
-                    stt_model="small",
-                    stt_device="cpu",
-                    stt_compute_type="int8",
-                    transcribed_text="Hola",
-                    decision_ms=1.0,
-                    intent_detected="service_info",
-                    confidence=1.0,
-                    response_text="Hola",
-                    tts_synthesis_ms=10.0,
-                    tts_model_path="test",
-                    output_audio_path=out_wav,
-                    output_audio_duration_s=2.0,
-                    total_turnaround_ms=21.0,
-                    turnaround_rtf=0.1,
-                )
-                res = run_mic_dialogue_demo(input_file=sample_wav, output_wav=out_wav)
-                assert res["capture_mode"] == "wav_input"
+        with (
+            patch("voice.pipeline.ConversationTurnPipeline.load_models"),
+            patch("voice.pipeline.ConversationTurnPipeline.process_turn") as mock_turn,
+            patch("demo_mic.play_audio_file", return_value=True),
+        ):
+            from voice.pipeline import TurnTelemetry
+
+            mock_turn.return_value = TurnTelemetry(
+                input_wav_path=sample_wav,
+                output_wav_path=out_wav,
+                input_audio_duration_s=3.32,
+                output_audio_duration_s=2.0,
+                stt_inference_ms=10.0,
+                decision_ms=1.0,
+                tts_synthesis_ms=10.0,
+                total_turnaround_ms=21.0,
+                turnaround_rtf=0.1,
+                transcribed_text="Hola",
+                response_text="Hola",
+                intent_detected="service_info",
+                confidence=1.0,
+                ram_process_mb=100.0,
+                vram_mb=0.0,
+                stt_model="small",
+                stt_device="cpu",
+                stt_compute_type="int8",
+                tts_model_path="test",
+            )
+            res = run_mic_dialogue_demo(input_file=sample_wav, output_wav=out_wav)
+            assert res["capture_mode"] == "wav_input"
 
     def test_mic_demo_artifacts_valid(self):
         json_path = "output/mic_demo/mic_demo_results.json"
