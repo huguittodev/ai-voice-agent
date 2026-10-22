@@ -14,6 +14,8 @@ import wave
 from dataclasses import dataclass, field
 from typing import Any
 
+from voice.vad import EnergyVoiceActivityDetector, VADConfig, VADState
+
 
 class AudioHardwareError(Exception):
     """Excepción base para incidencias con dispositivos de audio."""
@@ -341,6 +343,169 @@ def record_microphone_speech(
     exit_code = proc.exitcode
     raise MicrophoneNotAvailableError(
         f"El proceso de captura terminó abruptamente sin devolver telemetría (código de salida: {exit_code})."
+    )
+
+
+def _worker_vad_record_process(
+    output_wav_path: str,
+    vad_config: VADConfig,
+    channels: int,
+    device: int | None,
+    result_queue: Any,
+) -> None:
+    """Función de captura supervisada por VAD ejecutada en un subproceso aislado."""
+    try:
+        import sounddevice as sd  # type: ignore
+
+        if device is not None:
+            dev_info = sd.query_devices(device, "input")
+            target_device = device
+        else:
+            def_in = sd.default.device[0]
+            if def_in is None or def_in < 0:
+                result_queue.put({
+                    "success": False,
+                    "error": "No hay dispositivo de entrada predeterminado configurado.",
+                })
+                return
+            dev_info = sd.query_devices(def_in, "input")
+            target_device = def_in
+
+        max_in = dev_info.get("max_input_channels", 0)
+        if max_in < 1:
+            result_queue.put({
+                "success": False,
+                "error": f"El dispositivo {target_device} ('{dev_info.get('name')}') no tiene canales de entrada.",
+            })
+            return
+
+        actual_channels = min(channels, max_in)
+        detector = EnergyVoiceActivityDetector(vad_config)
+        stream_errors: list[str] = []
+        terminal_states = (
+            VADState.SPEECH_ENDED,
+            VADState.TIMEOUT_NO_SPEECH,
+            VADState.MAX_DURATION_REACHED,
+        )
+
+        def audio_callback(indata, _frames, _time_info, status):
+            if status:
+                stream_errors.append(str(status))
+            mono_chunk = indata[:, 0] if indata.ndim > 1 else indata
+            detector.process_chunk(mono_chunk)
+
+        t0 = time.perf_counter()
+        max_deadline = t0 + vad_config.max_utterance_duration_s + vad_config.initial_silence_timeout_s + 2.0
+
+        with sd.InputStream(
+            device=target_device,
+            channels=actual_channels,
+            samplerate=vad_config.sample_rate,
+            blocksize=vad_config.chunk_size_samples,
+            dtype="int16",
+            callback=audio_callback,
+        ):
+            while time.perf_counter() < max_deadline:
+                if detector.state in terminal_states:
+                    break
+                time.sleep(0.01)
+
+        actual_duration = time.perf_counter() - t0
+        res = detector.get_consolidated_result()
+
+        if len(res.audio_pcm) > 0 and res.state in (VADState.SPEECH_ENDED, VADState.MAX_DURATION_REACHED):
+            os.makedirs(os.path.dirname(output_wav_path) or ".", exist_ok=True)
+            with wave.open(output_wav_path, "wb") as wf:
+                wf.setnchannels(actual_channels)
+                wf.setsampwidth(2)
+                wf.setframerate(vad_config.sample_rate)
+                wf.writeframes(res.audio_pcm.tobytes())
+
+        result_queue.put({
+            "success": True,
+            "state": res.state.value,
+            "duration_seconds": res.duration_seconds,
+            "elapsed_seconds": actual_duration,
+            "speech_start_ms": res.speech_start_ms,
+            "speech_end_ms": res.speech_end_ms,
+            "total_speech_duration_ms": res.total_speech_duration_ms,
+            "peak_rms": res.peak_rms,
+            "chunks_processed": res.chunks_processed,
+            "device_name": dev_info.get("name"),
+            "errors": stream_errors,
+        })
+
+    except (OSError, RuntimeError, ValueError) as e:
+        result_queue.put({
+            "success": False,
+            "error": f"Error en flujo de captura con VAD: {e}",
+        })
+
+
+def record_speech_with_vad(
+    output_wav_path: str,
+    vad_config: VADConfig | None = None,
+    channels: int = 1,
+    device: int | None = None,
+    timeout_seconds: float | None = None,
+) -> dict[str, Any]:
+    """Captura voz delimitada dinámicamente por silencio mediante VAD en un subproceso aislado.
+    
+    Inicia la captura cuando detecta habla y la finaliza tras el silencio configurado
+    (silence_hangover_ms). Si no se detecta habla dentro de initial_silence_timeout_s,
+    retorna con estado timeout_no_speech sin error crítico.
+    """
+    cfg = vad_config if vad_config is not None else VADConfig()
+    status = check_audio_hardware(device=device)
+    if not status.has_input_device:
+        raise MicrophoneNotAvailableError(
+            f"No se puede capturar audio del micrófono: {status.error_detail or 'Dispositivo no encontrado'}"
+        )
+
+    effective_timeout = timeout_seconds if timeout_seconds is not None else (
+        cfg.max_utterance_duration_s + cfg.initial_silence_timeout_s + 3.0
+    )
+
+    ctx = multiprocessing.get_context("spawn")
+    result_queue = ctx.Queue()
+
+    proc = ctx.Process(
+        target=_worker_vad_record_process,
+        args=(
+            output_wav_path,
+            cfg,
+            channels,
+            device if device is not None else status.default_input_index,
+            result_queue,
+        ),
+    )
+
+    t0 = time.perf_counter()
+    proc.start()
+    proc.join(timeout=effective_timeout)
+
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(timeout=1.0)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=0.5)
+
+        raise MicrophoneNotAvailableError(
+            f"Captura con VAD cancelada por timeout de seguridad ({effective_timeout:.1f} s)."
+        )
+
+    if not result_queue.empty():
+        result = result_queue.get()
+        if not result.get("success"):
+            raise MicrophoneNotAvailableError(result.get("error", "Error no especificado durante captura VAD."))
+
+        result["total_wall_time_s"] = round(time.perf_counter() - t0, 3)
+        return result
+
+    exit_code = proc.exitcode
+    raise MicrophoneNotAvailableError(
+        f"El subproceso de captura VAD terminó abruptamente sin telemetría (código: {exit_code})."
     )
 
 
