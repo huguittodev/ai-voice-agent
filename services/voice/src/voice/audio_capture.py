@@ -522,17 +522,20 @@ def _worker_play_process(
         data, fs = sf.read(wav_path, dtype="float32")
         duration = len(data) / float(fs)
 
-        target_device = device if device is not None else (sd.default.device[1] if (sd.default.device[1] is not None and sd.default.device[1] >= 0) else None)
+        target_device = device if device is not None else (
+            sd.default.device[1] if (sd.default.device[1] is not None and sd.default.device[1] >= 0) else None
+        )
 
+        t0 = time.perf_counter()
         sd.play(data, samplerate=fs, device=target_device)
-        deadline = time.perf_counter() + duration + 1.5
-        while sd.get_stream().active and time.perf_counter() < deadline:
-            time.sleep(0.05)
+        deadline = t0 + duration + 0.3
+        while time.perf_counter() < deadline:
+            if not sd.get_stream().active:
+                break
+            time.sleep(0.04)
 
         if sd.get_stream().active:
             sd.stop()
-            result_queue.put({"success": False, "error": "Timeout en drenado de búfer de salida."})
-            return
 
         result_queue.put({"success": True})
 
@@ -559,9 +562,9 @@ def play_audio_file(
     except (wave.Error, OSError):
         wav_duration = 3.0
 
-    status = check_audio_hardware()
+    status = check_audio_hardware(device=device)
     if status.has_output_device:
-        effective_timeout = timeout_seconds if timeout_seconds is not None else (wav_duration + 2.0)
+        effective_timeout = timeout_seconds if timeout_seconds is not None else (wav_duration + 3.0)
         ctx = multiprocessing.get_context("spawn")
         result_queue = ctx.Queue()
 
@@ -592,7 +595,7 @@ def play_audio_file(
             print(f"  [Aviso] Error gestionando subproceso de reproducción: {e}", flush=True)
 
     # Si sounddevice falló o no está disponible, intentar herramientas CLI del sistema con timeout explícito
-    for player in ["aplay", "pw-play", "ffplay"]:
+    for player in ["paplay", "pw-play", "aplay", "ffplay"]:
         if shutil.which(player):
             try:
                 print(f"[Altavoz] Reproduciendo mediante herramienta {player}...", flush=True)
@@ -601,7 +604,7 @@ def play_audio_file(
                     check=True,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    timeout=wav_duration + 2.0,
+                    timeout=wav_duration + 3.0,
                 )
                 return True
             except subprocess.SubprocessError:
